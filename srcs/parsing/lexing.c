@@ -6,7 +6,7 @@
 /*   By: ade-la-c <ade-la-c@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/10 14:50:38 by ade-la-c          #+#    #+#             */
-/*   Updated: 2021/11/23 19:37:28 by ade-la-c         ###   ########.fr       */
+/*   Updated: 2021/11/24 20:03:41 by ade-la-c         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,11 @@ static t_prog	*init_prog(t_data *d, int index)
 		i++;
 	}
 	prog = malloc(sizeof(t_prog));
+	if (!prog)
+		exit_error("malloc failed");
 	prog->av = ft_calloc(sizeof(char *), (i + 1));
+	if (!prog->av)
+		exit_error("calloc failed");
 	prog->fdin = STDIN_FILENO;
 	prog->fdout = STDOUT_FILENO;
 	return (prog);
@@ -33,9 +37,11 @@ static t_prog	*init_prog(t_data *d, int index)
 
 static int	handleredirections(t_data *d, t_prog *p, int i)
 {
-
 	if (d->toklen <= 1 || d->toks[i + 1].type != WORD)
-		exit_error("redirection needs a valid argument");
+	{
+		write(STDERR_FILENO, "redirection needs a valid argument\n", 36);
+		return (-1);
+	}
 	if (d->toks[i].type == MORE)
 		p->fdout = open(d->toks[i + 1].content,
 				O_WRONLY | O_TRUNC | O_CREAT, 0777);
@@ -44,13 +50,21 @@ static int	handleredirections(t_data *d, t_prog *p, int i)
 	else if (d->toks[i].type == DMORE)
 		p->fdout = open(d->toks[i + 1].content,
 				O_WRONLY | O_CREAT | O_APPEND, 0777);
-	// TODO else if (d->toks[i].type == DLESS)
+	else if (d->toks[i].type == DLESS)
+	{
+		p->fdin = heredoc(d, d->toks[i + 1].content);
+		if (p->fdin < 0)
+			return (-1);
+	}
 	if (p->fdin < 0 || p->fdout < 0)
-		exit_error("redirection error");
-	return (2);
+	{
+		write(STDERR_FILENO, "redirection error\n", 19);
+		return (-1);
+	}
+	return (0);
 }
 
-static void	tokentoprog(t_data *d)
+static int	tokentoprog(t_data *d)
 {
 	int		i;
 	int		j;
@@ -67,17 +81,29 @@ static void	tokentoprog(t_data *d)
 		while (i < d->toklen && d->toks[i].type != PIPE)
 		{
 			if (d->toks[i].type >= MORE && d->toks[i].type <= DLESS)
-				i += handleredirections(d, prog, i);
+			{
+				if (handleredirections(d, prog, i) == -1)
+					return (-1);
+				i += 2;
+			}
 			else if (d->toks[i].type == WORD)
-				prog->av[j++] = ft_strdup(d->toks[i++].content);
+			{
+				prog->av[j] = ft_strdup(d->toks[i++].content);
+				if (!prog->av[j])
+					exit_error("strdup failed");
+				j++;
+			}
 		}
 		if (i == d->toklen || d->toks[i++].type == PIPE)
 		{
 			el = ft_lstnew((void *)prog);
+			if (!el)
+				exit_error("lstnew failed");
 			ft_lstadd_back(&(d->proglst), el);
 			prog = NULL;
 		}
 	}
+	return (0);
 }
 
 static t_prog	*lsttoprog(t_data *data, t_list *proglst)
@@ -103,11 +129,18 @@ static t_prog	*lsttoprog(t_data *data, t_list *proglst)
 	return (progs);
 }
 
-void	lexing(t_data *d)
+int	lexing(t_data *d)
 {
-	tokentoprog(d);
+	int	i;
+
+	i = -1;
+	if (tokentoprog(d) == -1)
+		return (-1);
 	d->proglen = ft_lstsize(d->proglst);
 	d->progs = lsttoprog(d, d->proglst);
 	ft_lstclear(&(d->toklst), free_tokel);
-	free_toks(d, d->toks);
+	while (++i < d->toklen)
+		free(d->toks[i].content);
+	free(d->toks);
+	return (0);
 }

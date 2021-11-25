@@ -6,7 +6,7 @@
 /*   By: ade-la-c <ade-la-c@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/17 18:51:01 by ade-la-c          #+#    #+#             */
-/*   Updated: 2021/11/23 18:14:41 by ade-la-c         ###   ########.fr       */
+/*   Updated: 2021/11/24 18:59:34 by ade-la-c         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,7 @@ int	wait_forks(pid_t *pid, int nb_pipe)
 	int	ret;
 
 	i = 0;
-	while (i < nb_pipe - 1)
+	while (i < nb_pipe)
 	{
 		waitpid(pid[i], &ret, 0);
 		i++;
@@ -82,11 +82,15 @@ void	init_token(t_env_l *env)
 	int		i;
 
 	env->token = malloc(sizeof(char **) * (nb_env(env->list) + 1));
+	if (!env->token)
+		exit_error("malloc failed");
 	var_contents = get_env_content(env->list);
 	i = 0;
 	while (var_contents[i])
 	{
 		env->token[i] = ft_split(var_contents[i], ' ');
+		if (!env->token[i])
+			exit_error("split failed");
 		i++;
 	}
 	env->token[i] = NULL;

@@ -6,7 +6,7 @@
 /*   By: ade-la-c <ade-la-c@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/10/25 16:05:33 by ade-la-c          #+#    #+#             */
-/*   Updated: 2021/11/23 19:34:46 by ade-la-c         ###   ########.fr       */
+/*   Updated: 2021/11/24 20:03:14 by ade-la-c         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,15 +28,14 @@ t_token	*lsttotoken(t_data *data, t_list *toklst)
 	{
 		token = (t_token *)toklst->content;
 		tokens[i].content = ft_strdup(token->content);
+		if (!tokens[i].content)
+			exit_error("strdup failed");
 		tokens[i].type = token->type;
 		toklst = toklst->next;
 	}
 	data->toklen = i;
-	// data->toklen = ft_lstsize(data->toklst);
 	return (tokens);
 }
-
-// /*.
 
 static void	welding(t_data *d)
 {
@@ -49,24 +48,16 @@ static void	welding(t_data *d)
 	{
 		if (d->toks[i].type >= WORD && d->toks[i].type <= SQUOTE_STR)
 		{
-			if (d->toks[i].type == WORD && !ft_strcmp(d->toks[i].content, "$")
-				&& i + 1 <= d->toklen)
-				i++;
 			buffer = ft_strdup(d->toks[i++].content);
+			if (!buffer)
+				exit_error("strdup failed");
 			while (i < d->toklen
 				&& (d->toks[i].type >= WORD && d->toks[i].type <= SQUOTE_STR))
-			{
-				if (d->toks[i].type == WORD && !ft_strcmp(d->toks[i].content, "$")
-					&& i + 1 <= d->toklen)
-					i++;
-				buffer = strjoinfree(buffer, d->toks[i++].content, 1); //? pas sur que ça casse
-			}
+				buffer = strjoinfree(buffer, d->toks[i++].content, 1);
 			el = new_token(buffer, WORD);
 		}
 		else if (d->toks[i].type == MYSPACE && ++i)
-		{
 			continue ;
-		}
 		else
 		{
 			el = new_token(ft_strdup(d->toks[i].content), d->toks[i].type);
@@ -76,50 +67,53 @@ static void	welding(t_data *d)
 	}
 }
 
-// */
-
-static void	checktokens(t_data *d)
+static int	checktokens(t_data *d)
 {
 	int	i;
 
 	i = 0;
 	if (d->toks[0].type == PIPE
 		|| (d->toklen > 1 && d->toks[d->toklen - 1].type == PIPE))
-		exit_error("pipes must be between valid arguments");
+	{
+		return (write(2, "pipes must be between valid arguments\n", 39));
+	}
 	while (i < d->toklen)
 	{
 		if (d->toks[i].type <= DLESS && d->toks[i].type >= MORE)
 		{
 			if (++i < d->toklen && (d->toks[i].type <= DLESS
-				&& d->toks[i].type >= MORE))
-				exit_error("syntax error near unexpected token");
+					&& d->toks[i].type >= MORE))
+				return (write(2, "syntax error near unexpected token\n", 36));
 		}
 		else if (d->toks[i].type == PIPE)
 		{
 			if (++i < d->toklen && d->toks[i].type == PIPE)
-				exit_error("syntax error near unexpected token");
+				return (write(2, "syntax error near unexpected token\n", 36));
 		}
 		i++;
 	}
-	print_toklst(d->toklst, "printing ou quoi");
+	return (0);
 }
 
-void	parsing(t_data *data, char *line)
+int	parsing(t_data *data, char *line)
 {
 	int	i;
 
-	i = 0;
+	i = -1;
 	tokenizer(data, line);
 	wordexpansion(data);
 	data->toks = lsttotoken(data, data->toklst);
 	data->toklen = ft_lstsize(data->toklst);
 	ft_lstclear(&(data->toklst), free_tokel);
 	welding(data);
-	free_toks(data, data->toks);
+	while (++i < data->toklen)
+		free(data->toks[i].content);
+	free(data->toks);
 	data->toks = lsttotoken(data, data->toklst);
 	ft_lstclear(&(data->toklst), free_tokel);
-	checktokens(data);
-	lexing(data);
+	if (checktokens(data) == -1)
+		return (-1);
+	if (lexing(data) == -1)
+		return (-1);
+	return (0);
 }
-
-	// print_tokens(d, d->toks);

@@ -6,31 +6,11 @@
 /*   By: ade-la-c <ade-la-c@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/17 18:54:29 by ade-la-c          #+#    #+#             */
-/*   Updated: 2021/11/23 20:21:30 by ade-la-c         ###   ########.fr       */
+/*   Updated: 2021/11/24 19:48:54 by ade-la-c         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../inc/minishell.h"
-
-void	free_token(t_env_l *env)
-{
-	int	i;
-	int	j;
-
-	i = 0;
-	while (env->token[i])
-	{
-		j = 0;
-		while (env->token[i][j])
-		{
-			free(env->token[i][j]);
-			j++;
-		}
-		free(env->token[i]);
-		i++;
-	}
-	free(env->token);
-}
 
 void	envdup(char **env_list, char **tmp)
 {
@@ -40,6 +20,8 @@ void	envdup(char **env_list, char **tmp)
 	while (tmp[i])
 	{
 		env_list[i] = ft_strdup(tmp[i]);
+		if (!env_list[i])
+			exit_error("strdup failed");
 		i++;
 	}
 	env_list[i] = NULL;
@@ -53,13 +35,19 @@ void	envdup_n_change(char **tmp, char **env_list, char *change, int exist)
 	while (i < exist)
 	{
 		tmp[i] = ft_strdup(env_list[i]);
+		if (!tmp[i])
+			exit_error("strdup failed");
 		i++;
 	}
 	tmp[i] = ft_strdup(change);
+	if (!tmp[i])
+		exit_error("strdup failed");
 	i++;
 	while (env_list[i])
 	{
 		tmp[i] = ft_strdup(env_list[i]);
+		if (!tmp[i])
+			exit_error("strdup failed");
 		i++;
 	}
 	tmp[i] = NULL;
@@ -72,17 +60,20 @@ void	change_env_var(t_env_l *env, int len, int exist, char *change)
 
 	i = 0;
 	tmp = malloc(sizeof(char *) * (len + 1));
+	if (!tmp)
+		exit_error("malloc failed");
 	envdup_n_change(tmp, env->list, change, exist);
 	while (env->list[i])
 	{
 		free(env->list[i]);
-		i++;	
+		i++;
 	}
 	free(env->list);
 	env->list = malloc(sizeof(char *) * (len + 1));
+	if (!env->list)
+		exit_error("malloc failed");
 	envdup(env->list, tmp);
 	free_env(len, tmp);
-	init_token(env);
 }
 
 void	add_env_var(t_env_l *env, int len, char *add)
@@ -106,5 +97,4 @@ void	add_env_var(t_env_l *env, int len, char *add)
 		exit_error("malloc failed");
 	envdup(env->list, tmp);
 	free_env(len + 2, tmp);
-	init_token(env);
 }

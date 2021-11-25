@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   execpath.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tristan <tristan@student.42.fr>            +#+  +:+       +#+        */
+/*   By: tzerates <tzerates@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/17 17:37:21 by ade-la-c          #+#    #+#             */
-/*   Updated: 2021/11/24 01:47:03 by tristan          ###   ########.fr       */
+/*   Updated: 2021/11/25 12:50:36 by tzerates         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,8 @@ static void	execve_with_path(int index, t_cmd *cmd, t_env_l *env)
 
 	i = 0;
 	buf = malloc(sizeof(struct stat));
+	if (!buf)
+		exit_error("malloc failed");
 	split = ft_split_slash(ft_getenv("PATH", env->list), ':');
 	if (split == NULL)
 	{
@@ -47,6 +49,8 @@ static void	execve_with_path(int index, t_cmd *cmd, t_env_l *env)
 	while (split[i])
 	{
 		join = ft_strjoin(split[i], cmd[index].builtin);
+		if (!join)
+			exit_error("malloc failed");
 		if (stat(join, buf) == 0)
 			execve(join, cmd[index].arg, env->list);
 		i++;
@@ -59,15 +63,18 @@ static void	execve_with_path(int index, t_cmd *cmd, t_env_l *env)
 static void	execpath_no_pipe(int i, t_cmd *cmd, t_env_l *env)
 {
 	if (cmd[i].fdout != 1)
-		dup2(cmd[i].fdout, 1);
+		if (dup2(cmd[i].fdout, 1) == -1)
+			exit_error("dup2 failed");
 	if (cmd[i].fdin != 0)
-		dup2(cmd[i].fdin, 0);
+		if (dup2(cmd[i].fdin, 0) == -1)
+			exit_error("dup2 failed");
 	if (check_is_path(cmd[i].builtin) == 1)
 		execve(cmd[i].builtin, cmd[i].arg, env->list);
 	else
 		execve_with_path(i, cmd, env);
 	if (cmd[i].arg[0])
 	{
+		write(2, SHELL_NAME": ", ft_strlen(SHELL_NAME) + 2);
 		write(2, cmd[i].arg[0], ft_strlen(cmd[i].arg[0]));
 		write(2, ": command not found\n", 20);
 	}
@@ -77,15 +84,18 @@ static void	execpath_no_pipe(int i, t_cmd *cmd, t_env_l *env)
 void	execpath_pipe(t_cmd *cmd, int i, t_env_l *env)
 {
 	if (cmd[i].fdout != 1)
-		dup2(cmd[i].fdout, 1);
+		if (dup2(cmd[i].fdout, 1) == -1)
+			exit_error("dup2 failed");
 	if (cmd[i].fdin != 0)
-		dup2(cmd[i].fdin, 0);
+		if (dup2(cmd[i].fdin, 0) == -1)
+			exit_error("dup2 failed");
 	if (check_is_path(cmd[i].builtin) == 1)
 		execve(cmd[i].builtin, cmd[i].arg, env->list);
 	else
 		execve_with_path(i, cmd, env);
 	if (cmd[i].arg[0])
 	{
+		write(2, SHELL_NAME": ", ft_strlen(SHELL_NAME) + 2);
 		write(2, cmd[i].arg[0], ft_strlen(cmd[i].arg[0]));
 		write(2, ": command not found\n", 20);
 	}
@@ -101,12 +111,14 @@ void	execpath(int i, t_cmd *cmd, t_env_l *env, int pipe)
 	{
 		pid = fork();
 		if (pid < 0)
-			return ;
+			exit_error("fork failed");
 		if (pid == 0)
 			execpath_no_pipe(i, cmd, env);
 		waitpid(pid, &status, 0);
 		if (ft_strlen(cmd[i].arg[0]) != 0)
 			retval = WEXITSTATUS(status);
+		if (retval == 2)
+			retval = 127;
 	}
 	else if (pipe == 1)
 		execpath_pipe(cmd, i, env);
