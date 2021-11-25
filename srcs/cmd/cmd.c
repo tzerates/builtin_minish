@@ -3,16 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   cmd.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ade-la-c <ade-la-c@student.42.fr>          +#+  +:+       +#+        */
+/*   By: tzerates <tzerates@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/17 17:38:36 by ade-la-c          #+#    #+#             */
-/*   Updated: 2021/11/24 22:17:14 by ade-la-c         ###   ########.fr       */
+/*   Updated: 2021/11/25 15:28:24 by tzerates         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../inc/minishell.h"
-
-int	retval = 0;
 
 void	exec_builtin(int i, t_cmd *cmd, t_env_l *env, int pipe)
 {
@@ -50,6 +48,11 @@ void	parse_cmd_array(t_cmd *cmd, t_env_l *env, int nb_cmd)
 	i = 0;
 	while (i < nb_cmd)
 	{
+		if (cmd[i].builtin == NULL)
+		{
+			i++;
+			continue;
+		}
 		nb_pipe = 0;
 		if (cmd[i].pipe == 1)
 		{
@@ -77,9 +80,14 @@ void	cmd_loop(t_data *data, t_cmd *cmd, int *i, int j)
 	cmd[*i].arg = malloc(sizeof(char *) * (l + 1));
 	if (!cmd[*i].arg)
 		exit_error("malloc failed");
-	cmd[*i].builtin = ft_strdup(data->progs[*i].av[0]);
-	if (!(cmd[*i].builtin))
-		exit_error("1 strdup failed");
+	if (data->progs[*i].av[0] == NULL)
+		cmd[*i].builtin = NULL;
+	else
+	{
+		cmd[*i].builtin = ft_strdup(data->progs[*i].av[0]);
+		if (!(cmd[*i].builtin))
+			exit_error("1 strdup failed");
+	}
 	j = -1;
 	while (data->progs[*i].av[++j])
 	{

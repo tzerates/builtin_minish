@@ -6,7 +6,7 @@
 /*   By: tzerates <tzerates@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/17 17:37:21 by ade-la-c          #+#    #+#             */
-/*   Updated: 2021/11/25 12:50:36 by tzerates         ###   ########.fr       */
+/*   Updated: 2021/11/25 18:23:04 by tzerates         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,28 +36,24 @@ static void	execve_with_path(int index, t_cmd *cmd, t_env_l *env)
 	struct stat	*buf;
 
 	i = 0;
-	buf = malloc(sizeof(struct stat));
-	if (!buf)
-		exit_error("malloc failed");
+	join = NULL;
+	splinter_shell(&buf, NULL, join, 1);
 	split = ft_split_slash(ft_getenv("PATH", env->list), ':');
 	if (split == NULL)
-	{
-		join = ft_strdup("");
-		execve(join, cmd[index].arg, env->list);
-		error_errno(cmd, errno, 1, env);
-	}
+		no_is_b(index, join, env, cmd);
 	while (split[i])
 	{
-		join = ft_strjoin(split[i], cmd[index].builtin);
-		if (!join)
-			exit_error("malloc failed");
+		join = strjoinfree(split[i], cmd[index].builtin, 0);
 		if (stat(join, buf) == 0)
+		{
+			splinter_shell(&buf, split, NULL, 0);
 			execve(join, cmd[index].arg, env->list);
+			free(join);
+			return ;
+		}
 		i++;
 	}
-	free(buf);
-	if (split)
-		free_split_join(split, join);
+	splinter_shell(&buf, split, join, 0);
 }
 
 static void	execpath_no_pipe(int i, t_cmd *cmd, t_env_l *env)
@@ -116,9 +112,9 @@ void	execpath(int i, t_cmd *cmd, t_env_l *env, int pipe)
 			execpath_no_pipe(i, cmd, env);
 		waitpid(pid, &status, 0);
 		if (ft_strlen(cmd[i].arg[0]) != 0)
-			retval = WEXITSTATUS(status);
-		if (retval == 2)
-			retval = 127;
+			g_glb[1] = WEXITSTATUS(status);
+		if (g_glb[1] == 2)
+			g_glb[1] = 127;
 	}
 	else if (pipe == 1)
 		execpath_pipe(cmd, i, env);

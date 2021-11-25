@@ -6,7 +6,7 @@
 #    By: tzerates <tzerates@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/10/15 16:42:21 by ade-la-c          #+#    #+#              #
-#    Updated: 2021/11/25 12:46:08 by tzerates         ###   ########.fr        #
+#    Updated: 2021/11/25 17:46:16 by tzerates         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -25,20 +25,22 @@ SRCS				= srcs/main.c				\
 					srcs/utils/env_utils2.c		\
 					srcs/utils/env_utils3.c		\
 					srcs/utils/split_slash.c	\
-					srcs/utils/retval.c			\
 					srcs/parsing/parsing.c		\
 					srcs/parsing/tokenizer.c	\
 					srcs/parsing/expansion.c	\
 					srcs/parsing/lexing.c		\
 					srcs/parsing/heredoc.c		\
 					srcs/builtin/cd.c			\
+					srcs/builtin/cd_utils.c		\
 					srcs/builtin/echo.c			\
 					srcs/builtin/env.c			\
 					srcs/builtin/execpath.c		\
 					srcs/builtin/exit.c			\
 					srcs/builtin/export.c		\
+					srcs/builtin/export_utils.c	\
 					srcs/builtin/pwd.c			\
 					srcs/builtin/unset.c		\
+					srcs/builtin/unset_utils.c	\
 					srcs/cmd/cmd.c				\
 					srcs/cmd/ft_error.c			\
 					srcs/cmd/pipe.c				\
